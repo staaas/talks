@@ -7,7 +7,7 @@
 # Стас Рудаков
 #   s_rudakou@wargaming.net
 #
-# 15 мая 2013 г.
+# 14 июня 2013 г.
 #
 # https://github.com/nott/talks/blob/master/descriptors.py
 #
