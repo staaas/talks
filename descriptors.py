@@ -211,6 +211,11 @@ func.__get__(None, Klass)
 # зачем все это было придумано
 instance.method()
 
+# разоблачение
+instance.func = lambda self: repr(self)
+instance.func()
+instance.func(instance)
+
 ##################################
 #! clear_screen()
 # Кэширующее свойство #
@@ -328,10 +333,11 @@ class FormView(ModelView):
 # Ну и что делать дальше? #
 ###########################
 
-# * Почитать The Inside Story on New-Style Classes
+# * почитать The Inside Story on New-Style Classes
 #   http://python-history.blogspot.com/2010/06/inside-story-on-new-style-classes.html  
-# * Почитать Descriptor HowTo Guide
+# * почитать Descriptor HowTo Guide
 #   http://docs.python.org/3/howto/descriptor.html
+# * глянуть на __getattribute__ у object, type, super
 # * grep __get__ внутри site-packages
 # * реализовать дескриптор cached из последнего примера
 # * Задавать вопросы!
