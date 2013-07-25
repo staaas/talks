@@ -1,0 +1,48 @@
+\ProvidesPackage{beamerinnerthemeWG}
+  [2013/07/22 Wargaming beamer inner theme]
+
+\mode<presentation>
+
+% For tikzpicture
+\RequirePackage{tikz}
+% For MakeTextUppercase
+\RequirePackage{textcase}
+
+% Overriding default beamertemplate
+% Main changes: background wg-bg, logo wg-logo
+\defbeamertemplate*{title page}{WG}[1][]
+{
+  \begin{tikzpicture}[remember picture,overlay] 
+    \node [xshift=0cm,yshift=0cm] at (current page.center)
+    {\includegraphics[width=\paperwidth, height=\paperheight]{wg-bg}};
+  \end{tikzpicture}%
+
+  \vbox{}
+  \vfill
+  \begin{centering}
+    \begin{beamercolorbox}[sep=8pt,center,#1]{title}
+      \includegraphics[width=0.31\paperwidth]{wg-logo.png}\par
+      \usebeamerfont{title}{\Huge\inserttitle}\par%
+      \ifx\insertsubtitle\@empty%
+      \else%
+        \vskip0.25em%
+        {\usebeamerfont{subtitle}\usebeamercolor[fg]{subtitle}\insertsubtitle\par}%
+      \fi%     
+    \end{beamercolorbox}%
+    \vskip1em\par
+    \begin{beamercolorbox}[sep=8pt,center,#1]{author}
+      \usebeamerfont{author}\insertauthor
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[sep=8pt,center,#1]{institute}
+      \usebeamerfont{institute}\insertinstitute
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[sep=8pt,center,#1]{date}
+      \usebeamerfont{date}\insertdate
+    \end{beamercolorbox}\vskip0.5em
+    {\usebeamercolor[fg]{titlegraphic}\inserttitlegraphic\par}
+  \end{centering}
+  \vfill
+}
+
+\mode
+<all>
