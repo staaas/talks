@@ -1,0 +1,42 @@
+\ProvidesPackage{beamerthemeWG}
+  [2013/07/22 Wargaming beamer theme]
+ 
+\mode<presentation>
+
+\usefonttheme{default}
+\usecolortheme{WG}
+\useinnertheme{WG}
+\useoutertheme{default}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{headline}{
+    \includegraphics[height=1mm, width=\paperwidth]{wg-headline.png}
+}
+\setbeamertemplate{footline}{
+    \begin{beamercolorbox}[ht=1.2em]{title in head/foot}
+        {\footnotesize \hspace{1em}\inserttitle, \insertshortauthor}
+    \end{beamercolorbox}
+}
+
+%% First frame for titlepage
+\newcommand{\titleframe}{\begin{frame}[plain]{}\titlepage\end{frame}}
+
+%% Final frame with name, contacts, Q&A, etc.
+\newenvironment{finalframe}
+{
+  \setbeamertemplate{footline}{}
+
+  \setbeamercolor{frametitle}{fg=white}
+  \setbeamercolor{normal text}{fg=white}
+  \setbeamercolor{block title}{fg=white}
+  \setbeamercolor{block body}{fg=red}
+
+  \usebackgroundtemplate{\includegraphics[height=\paperheight]{wg-bg.jpg}}
+
+  \begin{frame}
+}
+{
+    \end{frame}
+}
+
+\mode<all>

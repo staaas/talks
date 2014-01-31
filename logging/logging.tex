@@ -1,0 +1,857 @@
+ % 
+\documentclass[aspectratio=169]{beamer}
+\usetheme{WG}
+\usepackage[english,russian]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{pgfpages}
+\usepackage{ulem}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{epigraph}
+
+% quote author
+\usepackage{amsthm} % pushQED, popQED
+\newenvironment{aquote}[1]{%
+  \pushQED{#1}%
+  \begin{quote}
+}{%
+  \noindent\hfill(\popQED)%
+  \end{quote}%
+}
+
+\definecolor{mygreen}{RGB}{0,150,0}
+\definecolor{myyellow}{RGB}{120,120,0}
+
+\usepackage{listings}
+\definecolor{light-gray}{gray}{0.95}
+\lstset{
+language=Python,                             % Code langugage
+basicstyle=\small\ttfamily,                   % Code font, Examples: \footnotesize, \ttfamily
+keywordstyle=\color{WGred},        % Keywords font ('*' = uppercase)
+commentstyle=\color{gray},              % Comments font
+numbers=left,                           % Line nums position
+numberstyle=\tiny,                      % Line-numbers fonts
+stepnumber=1,                           % Step between two line-numbers
+numbersep=5pt,                          % How far are line-numbers from code
+backgroundcolor=\color{light-gray}, % Choose background color
+frame=lines,                             % A frame around the code
+tabsize=4,                              % Default tab size
+captionpos=b,                           % Caption-position = bottom
+breaklines=true,                        % Automatic line breaking?
+breakatwhitespace=false,                % Automatic breaks only at whitespace?
+showspaces=false,                       % Dont make spaces visible
+showstringspaces=false,
+stringstyle=\color{myyellow},
+showtabs=false,                         % Dont make tabls visible
+}
+
+\lstset{emph={yield},emphstyle={\color{WGred}}}
+\lstset{emph={self},emphstyle={\color{mygreen}}}
+
+
+\begin{document}
+
+\title{Про логгирование}
+\author{Стас Рудаков}
+\date{}
+
+{
+\title{ОЧЕРЕДНОЙ СКУЧНЫЙ ДОКЛАД\\ПРО ЛОГГИРОВАНИЕ}
+\titleframe
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \frametitle{Эпиграф}
+
+  \epigraph{{\it Невозможно объять необъятное.}}{Козьма Прутков}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \frametitle{Про что будем говорить?}
+  \pause
+  Про логгирование, там же было написано :)
+  \pause
+
+  \vspace{1cm}
+  А именно:
+  \begin{itemize}
+    \item зачем;
+    \item как;
+    \item проблемы;
+    \item очевидные пути решения;
+    \item неочевидные пути решения;
+    \item open source инструменты.
+  \end{itemize}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \frametitle{Что вообще значит ``записать в лог''?}
+  \pause
+  \begin{itemize}
+    \item сформировать сообщение
+      \pause
+    \item по некому событию
+      \pause
+    \item и, если это сообщение нас вообще интересует,
+      \pause
+    \item записать или отправить его куда-то,
+      \pause
+    \item куда имеют доступ заинтересованные лица.
+  \end{itemize}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \frametitle{Зачем}
+  \begin{itemize}
+    \item Debug
+    \item Разбор инцидентов
+      \pause
+    \item Сбор статистики
+    \item Средне- и долгосрочный мониторинг
+    \item Инструмент для службы поддержки пользователей
+    \item Аналитика
+  \end{itemize}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \begin{center}
+    {\Huge {\tt import logging}}
+  \end{center}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+  \frametitle{Писать логи очень просто}
+
+  \begin{lstlisting}
+import logging
+
+logging.basicConfig(
+  format='[%(asctime)s][%(levelname)s][%(name)s] %(message)s',
+  stream=sys.stdout,
+  level=logging.INFO
+)
+
+logger = logging.getLogger("meetup.python.minsk")
+logger.info("Stas has just started the talk on logging")
+  \end{lstlisting}
+
+  \pause
+  \vspace{1cm}
+
+  \begin{lstlisting}
+[2014-01-31 06:23:27,904][INFO][meetup.python.minsk] Stas has just started the talk on logging
+  \end{lstlisting}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \frametitle{logging: архитектура на пальцах}
+
+  \begin{columns}
+
+    \begin{column}{.5\textwidth}
+      \begin{itemize}
+      \item сформировать сообщение
+      \item по некому событию
+        \vspace{1.5cm}
+      \item и, если это сообщение нас вообще интересует,
+        \vspace{1cm}
+      \item записать или отправить его куда-то,
+      \item куда имеют доступ заинтересованные лица.
+      \end{itemize}
+    \end{column}
+
+    \begin{column}{.5\textwidth}
+        \vspace{0.5cm}
+      \includegraphics[scale=0.4]{img/logging.png}
+    \end{column}
+
+  \end{columns}
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \begin{center}
+    \includegraphics[scale=0.63]{img/loggers1.png}
+  \end{center}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \begin{center}
+    \includegraphics[scale=0.63]{img/loggers2.png}
+  \end{center}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \begin{center}
+    \includegraphics[scale=0.63]{img/loggers3.png}
+  \end{center}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \begin{center}
+    \includegraphics[scale=0.63]{img/loggers4.png}
+  \end{center}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \begin{center}
+    \includegraphics[scale=0.63]{img/loggers5.png}
+  \end{center}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+  \frametitle{Конфигурация}
+  \begin{columns}
+    \begin{column}{.5\textwidth}
+
+\begin{lstlisting}
+CFG = {
+  'formatters': {
+    'simple': {
+      'format': '%(asctime)s %(message)s'},},
+  'filters': {
+    'pwd': {
+      '()': 'proj.PwdFilter',
+      'foo': 'bar',},},
+  'handlers': {
+    'console':{
+      'level':'DEBUG',
+      'class':'logging.'       'StreamHandler',
+      'formatter': 'simple'},
+\end{lstlisting}
+
+    \end{column}
+
+    \begin{column}{.5\textwidth}
+\begin{lstlisting}[firstnumber=14]
+    'mail_adm': {
+      'level': 'ERROR',
+      'class': 'proj.'         'AdminEmailHandler',
+      'filters': ['pwd']},},
+  'loggers': {
+    '': {
+      'handlers': ['console'],
+      'level': 'INFO',
+      'filters': ['pwd']},
+    'django.request': {
+      'handlers': ['mail_adm'],
+      'level': 'ERROR',
+      'propagate': False,},},}
+logging.config.dictConfig(CFG)
+\end{lstlisting}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \frametitle{tips n tricks: уровни логгирования}
+  \pause
+  \begin{itemize}
+    \item {\tt CRITICAL = 50 } \par
+      {\tt logger.critical(u'проблема, после которой приложение не может восстановиться без постороннего вмешательства') }
+      \pause
+    \item {\tt ERROR = 40} \par
+      {\tt logger.error(u'проблема, из-за которой приложение работает не в штатном режиме') } \par
+      \pause
+    \item {\tt WARNING = 30} {\it \# уровень по умолчанию } \par
+      {\tt logger.warning(u'проблема, которая не мешает работе приложения, но на которую стоит  обратить внимание') } \par
+      \pause
+    \item {\tt INFO = 20} \par
+      {\tt logger.info(u'обычная запись в лог') }
+      \pause
+    \item {\tt DEBUG = 10} \par
+      {\tt logger.debug(u'логи, которые помогли нам при отладке приложения и которые вряд ли пригодятся в будущем') }
+  \end{itemize}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+  \frametitle{tips n tricks: traceback}
+  \begin{lstlisting}
+try:
+    do_something_unsafe()
+except Exception as e:
+    logger.exception('Unexpected exception')
+    raise
+  \end{lstlisting}
+
+  \pause
+  В лог отправится:
+
+  \begin{lstlisting}[language=sh]
+[2014-01-29 23:35:04,393][examples][ERROR] Unexpected exception
+Traceback (most recent call last):
+  File "stacktrace1.py", line 22, in <module>
+    do_something_unsafe()
+  File "stacktrace1.py", line 18, in do_something_unsafe
+    down_rabbit_hole()
+  File "stacktrace1.py", line 17, in down_rabbit_hole
+    sender = message.sender
+AttributeError: 'NoneType' object has no attribute 'sender'
+  \end{lstlisting}
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+  \frametitle{tips n tricks: traceback}
+
+  \begin{lstlisting}
+try:
+    validate_data(data)
+except ValidationError as e:
+    logger.exception('Validation failed')
+  \end{lstlisting}
+
+А в лог запишется
+  \begin{lstlisting}[language=sh]
+[2014-01-29 08:33:53,439][examples][ERROR] Validation failed
+Traceback (most recent call last):
+  File "stacktrace2.py", line 27, in <module>
+    validate_data(data)
+  File "stacktrace2.py", line 22, in validate_data
+    check_values(data)
+  File "stacktrace2.py", line 21, in check_values
+    raise ValidationError('security key is missing')
+ValidationError: security key is missing
+  \end{lstlisting}
+
+\pause
+
+{\color{WGred}
+  Но разве уровень {\tt ERROR} нам подходит?
+}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+  \frametitle{tips n tricks: traceback}
+
+  \begin{lstlisting}
+try:
+    validate_data(data)
+except ValidationError as e:
+    logger.warning('Validation failed', exc_info=True)
+  \end{lstlisting}
+
+Получаем
+  \begin{lstlisting}[language=sh]
+[2014-01-29 08:33:53,439][examples][WARNING] Validation failed
+Traceback (most recent call last):
+  File "stacktrace2.py", line 27, in <module>
+    validate_data(data)
+  File "stacktrace2.py", line 22, in validate_data
+    check_values(data)
+  File "stacktrace2.py", line 21, in check_values
+    raise ValidationError('security key is missing')
+ValidationError: security key is missing
+  \end{lstlisting}
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+  \frametitle{tips n tricks: ``ленивое'' форматирование}
+
+  \begin{lstlisting}
+logger.info(
+    'Request id=%s message=%r' % (100500, {'event': 'meetup'})
+)
+  \end{lstlisting}
+
+\pause
+
+\vspace{0.5cm}
+Зачем форматировать строку, если мы не знаем, попадет ли она в лог?
+
+\pause
+
+  \begin{lstlisting}
+logger.info(
+    'Request id=%s message=%r', 100500, {'event': 'meetup'}
+)
+  \end{lstlisting}
+
+  \pause
+  \begin{center}
+    {\color{WGred}
+      {\tt *args} работают, {\tt **kwargs} {\em не} работают
+    }
+  \end{center}
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+  \frametitle{tips n tricks: ротация}
+
+  в один прекрасный день\ldots \pause no space left on device  
+
+  \pause {\tt from logging.handlers import *}
+
+  \begin{columns}
+
+    \begin{column}{.5\textwidth}
+      \begin{lstlisting}
+RotatingFileHandler(
+  filename, mode='a',
+  maxBytes=0, backupCount=0,
+  encoding=None, delay=False
+)
+ 
+      \end{lstlisting}
+
+      \begin{lstlisting}[language=sh]
+$ ls logs
+meetup.log
+meetup.log.1
+meetup.log.2
+meetup.log.3
+      \end{lstlisting}
+    \end{column}
+
+    \pause
+    
+    \begin{column}{.5\textwidth}
+      \begin{lstlisting}
+TimedRotatingFileHandler(
+  filename,
+  when='h', interval=1,
+  backupCount=0, encoding=None,
+  delay=False, utc=False)
+      \end{lstlisting}
+
+      \begin{lstlisting}[language=sh]
+$ ls logs
+meetup.log
+meetup.log.2014-01-31_17
+meetup.log.2014-01-31_18
+meetup.log.2014-01-31_19
+      \end{lstlisting}
+    \end{column}
+
+  \end{columns}
+
+  \pause
+
+Если варианты выше не подходят, можно использовать утилиту {\tt logrotate} и
+  \begin{lstlisting}
+WatchedFileHandler(fname, mode='a', encoding=None, delay=False)
+  \end{lstlisting}
+  
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \begin{center}
+    {\Huge {\tt Sentry}} \par
+    \url{getsentry.com}
+  \end{center}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \begin{columns}
+
+    \begin{column}{.25\textwidth}
+      Sentry - это\ldots
+      \begin{itemize}
+        \item open source аггрегатор сообщений об ошибках,
+        \item написанный на \\Python + \\Django + \\Celery,
+        \item с клиентами для многих языков и платформ.
+      \end{itemize}
+    \end{column}
+
+    \begin{column}{.75\textwidth}
+      \begin{center}
+        \includegraphics[scale=0.27]{img/sentry1.png}
+      \end{center}
+    \end{column}
+
+  \end{columns}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \begin{center}
+    \includegraphics[scale=0.23]{img/sentry2.png}
+  \end{center}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+  \frametitle{Sentry: как подключить}
+  \begin{lstlisting}
+from raven.handlers.logging import SentryHandler
+handler = SentryHandler('http://public:secret@example.com/1',
+                        level=logging.WARNING)
+  \end{lstlisting}
+  \vspace{0.5cm}
+  \pause
+  \begin{lstlisting}[firstnumber=4]
+logger = logging.getLogger('coffeemaker')
+logger.addHandler(handler)
+  \end{lstlisting}
+  \vspace{0.5cm}
+  \pause
+  \begin{lstlisting}[firstnumber=6]
+logger.warning('We are running out of milk')
+logger.error('Not enough milk for a cappuccino')
+  \end{lstlisting}
+  
+  \pause
+  \vspace{0.7cm}
+
+\begin{center}
+    {\color{WGred} HTTP? Cерьезно?}
+\end{center}
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \frametitle{А теперь давайте вспомним, что мы с этими логами собирались делать}
+
+  \begin{itemize}
+    \item Debug
+    \item Разбор инцидентов
+      \pause
+    \item Сбор статистики
+    \item Средне- и долгосрочный мониторинг
+    \item Инструмент для службы поддержки пользователей
+    \item Аналитика
+  \end{itemize}
+\end{frame}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \frametitle{Назад в будущее}
+
+  Современные вызовы:
+  \begin{itemize}
+  \item хотим убедиться, что логи не были модифицированы злоумышленником после взлома;
+  \item переходим от программ к сложным распределенным системам --- хочется иметь логгирование уровня всей системы, а не отдельных приложений;
+  \item быстрый поиск;
+  \item метрики.
+  \end{itemize}
+  
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \begin{center}
+    {\Huge {\tt elasticsearch}} \par
+    \url{elasticsearch.org}
+  \end{center}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \frametitle{elasticsearch - это\ldots}
+
+  \begin{itemize}
+  \item распределенный
+  \item полнотекстовый
+  \item поисковый движок
+    \pause
+  \item c RESTful web-интерфейсом,
+  \item с документами без схемы
+  \item и возможностями аггрегации документов.
+  \end{itemize}
+
+  \pause
+
+  \vspace{0.3cm}
+  \begin{itemize}
+  \item Написан на Java
+  \item с использованием библиотеки Apache Lucene.
+  \item Используется в Mozilla, GitHub и многих других компаниях\par(если вам нужно убедить своего менеджера).
+  \end{itemize}
+
+  \pause
+
+  \vspace{0.3cm}
+  {\color{WGred}
+    Но как связать логгирование и elasticsearch?
+  }
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \begin{center}
+    {\Huge {\tt logstash}} \par
+    \url{logstash.net}
+  \end{center}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \begin{center}
+    \includegraphics[scale=0.63]{img/logstash.png}
+  \end{center}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \frametitle{logstash + elasticsearch + kibana = nice web UI}
+
+  \begin{center}
+    \includegraphics[scale=0.46]{img/kibana.png}
+  \end{center}
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}[fragile]
+  \frametitle{structlog --- последний ингридиент}
+
+  \begin{lstlisting}
+>>> from structlog import get_logger
+>>> log = get_logger()
+>>> log = log.bind(user='anonymous', some_key=23)
+>>> log = log.bind(user='hynek', another_key=42)
+>>> log.info('user.logged_in', happy=True)
+some_key=23 user='hynek' another_key=42 happy=True event='user.logged_in'
+  \end{lstlisting}
+
+  \vspace{0.5cm}
+  \begin{center}
+    \url{http://www.structlog.org/}
+  \end{center}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \frametitle{Что мы не объяли?}
+
+  \begin{itemize}
+    \item Syslog Protocol
+    \item Логи в реляционной базе данных
+    \item journald
+    \item logplex, fluentd
+    \item Агенты для сбора логов
+    \item Что, собственно, писать в логи.
+  \end{itemize}
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+  \frametitle{Выводы}
+
+  \begin{itemize}
+  \item Батарейка logging вполне подходит для 95\% случаев.
+  \pause
+  \item Архитектуры систем логгирования похожи как на микро, так и на макро уровне.
+  \pause
+  \item Open source инструменты помогают выжать из логов очень много полезных свойств.
+  \pause
+  \item Я вас всех порядочно утомил.
+  \end{itemize}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{finalframe}
+  \frametitle{СПАСИБО ЗА ВНИМАНИЕ. ВОПРОСЫ?}
+    \begin{block}{Стас Рудаков}
+    \par \url{mailto:stas@garage22.net}
+    \par \url{https://raw.github.com/nott/talks/logging.pdf}
+    \end{block}
+
+    \begin{block}
+      \par \url{http://docs.python.org/3/library/logging.html}
+      \par \url{http://www.structlog.org/}
+      \par \url{https://www.getsentry.com/}
+      \par \url{http://logstash.net/}
+    \end{block}
+\end{finalframe}
+
+\end{document}
+
