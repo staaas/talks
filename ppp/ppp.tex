@@ -1,0 +1,545 @@
+\documentclass[10pt,pdf,utf8,russian,aspectratio=169,xcolor=dvipsnames,x11names,center]{beamer}
+
+% Standard packages
+
+\usepackage[T2A]{fontenc}
+\usepackage[english,russian]{babel}
+\usepackage[utf8]{inputenc}
+
+% Setup appearance:
+
+\usetheme{Hannover}
+\usecolortheme{sidebartab}
+\usecolortheme{dove}
+\usefonttheme{structurebold}
+\setbeamertemplate{navigation symbols}{}
+
+%\usepackage{tgheros}
+%\usepackage{tgadventor}
+%\usepackage{libertine}
+
+\usepackage{listings}
+
+\lstdefinelanguage{javascript}{
+  keywords={break, case, catch, continue, debugger, default, delete, do, else, finally, for, function, if, in, instanceof, new, return, switch, this, throw, try, typeof, var, void, while, with},
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]",
+  sensitive=true
+}
+
+\definecolor{light-gray}{gray}{0.95}
+\lstset{
+language=Python,                             % Code langugage
+basicstyle=\small,                   % Code font, Examples: \footnotesize, \ttfamily
+keywordstyle=\color{OliveGreen},        % Keywords font ('*' = uppercase)
+commentstyle=\color{gray},              % Comments font
+numbers=left,                           % Line nums position
+numberstyle=\tiny,                      % Line-numbers fonts
+stepnumber=1,                           % Step between two line-numbers
+numbersep=5pt,                          % How far are line-numbers from code
+backgroundcolor=\color{light-gray},     % Choose background color
+frame=lines,                            % A frame around the code
+tabsize=4,                              % Default tab size
+captionpos=b,                           % Caption-position = bottom
+breaklines=true,                        % Automatic line breaking?
+breakatwhitespace=false,                % Automatic breaks only at whitespace?
+showspaces=false,                       % Don't make spaces visible
+showstringspaces=false,                 % Don't show spaces in string literals 
+showtabs=false,                         % Don't make tabs visible
+}
+
+% Setup TikZ
+
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+\tikzstyle{block}=[draw opacity=0.7,line width=1.4cm]
+
+% timeline
+
+\usepackage{array}
+\newcommand{\foo}{\color{OliveGreen}\makebox[0pt]{\textbullet}\hskip-0.5pt\vrule width 1pt\hspace{\labelsep}}
+
+% Author, Title, etc.
+
+\title[Practical Python Packaging]{\Large{Practical Python Packaging}}
+
+\author[]{\Large{Stas Rudakou}\\\small{stas@garage22.net}}
+
+\date{Minsk Python Meetup\\November 2014}
+
+% The main document
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+%% \begin{frame}
+%%   \begin{frame}[plain]
+%%     \begin{tikzpicture}[remember picture,overlay]
+%%       \node[at=(current page.center)] {
+%%         \includegraphics[width=\paperwidth]{}
+%%       };
+%%     \end{tikzpicture}
+%%   \end{frame}
+%% \end{frame}
+
+%%%%%%%%
+\section{История}
+
+\begin{frame}
+  \begin{center}
+    {\Huge История}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{История}
+  \begin{table}
+    \begin{tabular}{@{\,}r <{\hskip 2pt} !{\foo} >{\raggedright\arraybackslash}p{9cm}}
+      2000 & {\tt distutils} вошел в стандартную библиотеку Python 1.6 \pause\\
+      2003 & запущен {\tt PyPI}\pause\\
+      2004 & выпуск {\tt setuptools} ({\tt easy\_install}, формат {\tt egg})\pause\\
+      2006 & выпуск {\tt buildout}\pause\\
+      2007 & выпуск {\tt virtualenv}\pause\\
+      2008 & выпуск {\tt pip}\pause\\
+      2008 & {\tt distribute} --- форк {\tt setuptools}\pause\\
+      2012 & distutils2/packaging не вошел в Python 3.3\pause\\
+      2012 & {\tt venv} включен в стандартную библиотеку Python 3.3\pause\\
+      2012 & дистрибутив Anaconda, пакетный менеджер {\tt conda}\pause\\
+      2013 & объединение проектов {\tt distribute} и {\tt setuptools}\pause\\
+      2013 & {\tt pip} и {\tt easy\_install} начинают использовать SSL\pause\\
+      2013 & формат {\tt Wheel}\pause\\
+      2014 & в Python 3.4 вошли скрипты для установки {\tt pip}\\
+    \end{tabular}
+  \end{table}
+\end{frame}
+
+%%%%%%%%
+\section{Пакетирование}
+
+\begin{frame}
+  \begin{center}
+    {\Huge Пакетирование}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Пакетирование}
+  \centering
+  
+  \begin{minipage}{9cm}
+    Как Dev я хочу:
+    \begin{itemize}
+    \item думать, как писать программы и библиотеки
+    \item не думать, как распространять программы
+    \item использовать чужие наработки
+    \item делиться своими наработками
+    \end{itemize}
+  \end{minipage}
+
+  \vspace{0.6cm}
+  \pause
+  \begin{minipage}{9cm}
+    Как Ops я хочу:
+    \begin{itemize}
+    \item легко ставить и сносить программы\\(при помощи pip)
+    \item иметь свой PyPI-совместимый сервер
+    \end{itemize}
+  \end{minipage}
+\end{frame}
+
+\subsection{setuptools}
+
+\begin{frame}[fragile]
+  \frametitle{setuptools}
+
+  \begin{lstlisting}[escapeinside=||]
+$ find .
+.
+./hello
+./hello/data.json
+./hello/__init__.py
+./hello/world.py |\pause|
+./tests/__init__.py
+./tests/test_hello.py |\pause|
+
+setup.py
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{setuptools}
+
+  \begin{lstlisting}
+from setuptools import setup, find_packages
+setup(
+    name = "hello-world",
+    version = "0.1",
+    packages = find_packages(exclude=["tests"]),
+
+    install_requires = ["docutils>=0.3"],
+    package_data = {
+        # If any package contains *.rst files, include them
+        "": ["*.rst"],
+        # And include any *.json files found in the "hello" package
+        "hello": ["*.json"],
+    },
+
+    author = "Stas Rudakou",
+    author_email = "stas@garage22.net",
+    description = "This is an Example Package",
+)
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{setuptools}
+
+  \begin{lstlisting}[escapeinside=||]
+$ python setup.py install |\pause|
+$ python setup.py sdist
+$ ls dist
+hello-world-0.1.tar.gz
+  \end{lstlisting}
+    
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{setuptools}
+
+  \begin{lstlisting}
+$ find .
+.
+./hello
+./hello/data.json
+./hello/__init__.py
+./hello/world.py
+./tests/__init__.py
+./tests/test_hello.py
+
+setup.py
+setup.cfg
+README.rst
+MANIFEST.in
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{setuptools}
+
+  \begin{lstlisting}
+import os.path
+from setuptools import setup, find_packages
+
+this_dir = os.path.dirname(__file__)
+with open(os.path.join(this_dir, 'README.rst')) as f:
+    README = f.read()
+
+setup(
+    name = "hello-world",
+    version = "0.1",
+    # ...
+    long_description=README
+)
+  \end{lstlisting}
+\end{frame}
+
+\subsection{pbr}
+
+\begin{frame}[fragile]
+  \frametitle{pbr}
+
+  \begin{itemize}
+  \item {\tt pbr} (Python Build Reasonableness) --- это \ldots
+  \item библиотека от разработчиков OpenStack \ldots
+  \item для управления {\tt setuptools} \ldots\pause
+  \item с декларативной конфигурацией \ldots
+  \item и версиями на основе ревизий и тегов в git\pause
+  \end{itemize}
+
+  \pause
+
+  \begin{lstlisting}
+from setuptools import setup
+
+setup(
+    setup_requires=['pbr'],
+    pbr=True,
+)
+  \end{lstlisting}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+  \frametitle{pbr}
+
+  \begin{lstlisting}[caption=setup.cfg]
+[metadata]
+name = hello-world
+author = Stas Rudakou
+author-email = stas@garage22.net
+description-file = README.rst
+[files]
+packages =
+    hello
+  \end{lstlisting}
+
+  \begin{lstlisting}[caption=requirements.txt]
+docutils>=0.3
+  \end{lstlisting}
+
+\end{frame}
+
+  
+\subsection{Разработка}
+
+\begin{frame}
+  \frametitle{Разработка}
+
+  \begin{itemize}
+  \item Обновили код --- запустили {\tt python setup.py install} \ldots точно? \pause
+  \item {\tt pip install -e .} \pause
+  \item {\tt tox} для запуска тестов в изолированных virtualenv'ах \pause
+  \item свой {\tt PyPI}-сервер --- это просто ({\tt nginx} или {\tt devpi})
+  \end{itemize}
+\end{frame}
+
+\section{Приятные мелочи}
+
+\begin{frame}
+  \begin{center}
+    {\Huge Приятные мелочи}
+  \end{center}
+\end{frame}
+
+\subsection{pkg\_resources}
+
+\begin{frame}[fragile]
+
+  \frametitle{pkg\_resources}
+  \centering
+
+  \begin{itemize}
+  \item модуль из состава {\tt setuptools}
+  \item изначально создавался как слой доступа к ресурсам пакета\\
+    (не забываем, что формат {\tt egg} появился именно в {\tt setuptools})
+  \item позволяет получить метаданные любого установленного пакета
+  \end{itemize}
+  \pause
+
+  \begin{lstlisting}
+>>> import pkg_resources
+>>> dist = pkg_resources.get_distribution("pytest")
+>>> dist.project_name
+"pytest"
+>>> dist.version
+"2.6.4"
+  \end{lstlisting}
+
+\end{frame}
+
+\subsection{Entry points}
+\begin{frame}[fragile]
+  \frametitle{Entry points}
+  \centering
+
+  \begin{lstlisting}
+setup(
+    name="my-package",
+    # other arguments here...
+    entry_points={
+        "group1": [
+            "name1 = my_package.some_module:func1",
+            "name2 = my_package.other_module",
+        ],
+    }
+)
+  \end{lstlisting}
+
+  \begin{lstlisting}
+>>> import pkg_resources
+>>> for ep in pkg_resources.iter_entry_points("group1"):
+...   print(ep.dist.project_name, ep.name, repr(ep.load))
+my-package name1 "<function func1 at 0x7ff5091e5730>"
+my-package name2 "<module 'other_module' from ... >"
+other-package name3 "<function func3 at 0x7ff5091e5730>"
+
+  \end{lstlisting}
+
+\end{frame}
+
+\subsection{Console scripts}
+\begin{frame}[fragile]
+  \frametitle{Console scripts}
+  \begin{minipage}{13.7cm}
+
+  \begin{lstlisting}
+setup(
+    name="mysite",
+    # other arguments here...
+    install_requires = ["Django>=1.7,<1.8"],
+    entry_points={
+        "console_scripts": [
+            "mysite_manage = mysite_manage:main",
+        ],
+    }
+)
+  \end{lstlisting}
+
+  \pause
+
+  \begin{lstlisting}
+(myvenv) $ pip install mysite
+(myvenv) $ which mysite_manage
+/tmp/myvenv/bin/mysite_manage
+(myvenv) $ ls -l `which mysite_manage`
+-rwxr-xr-x 1 stas stas 300 Nov 28 19:00 /tmp/myvenv/bin/mysite_manage
+  \end{lstlisting}
+
+  \end{minipage}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Console scripts \& Django}
+
+  \begin{lstlisting}[caption=manage.py из состава Django,basicstyle=\ttfamily\footnotesize]
+import os, sys
+
+if __name__ == "__main__":
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "mysite.settings")
+    from django.core.management import execute_from_command_line
+    execute_from_command_line(sys.argv)
+  \end{lstlisting}
+
+  \begin{lstlisting}[caption=mysite\_manage.py,basicstyle=\ttfamily\footnotesize]
+import os,sys
+
+def main():
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "mysite.settings")
+    from django.core.management import execute_from_command_line
+    execute_from_command_line(sys.argv)
+
+if __name__ == "__main__":
+    main()
+  \end{lstlisting}
+
+\end{frame}
+
+\subsection{Plug-ins}
+
+\begin{frame}[fragile]
+  \frametitle{Plug-ins на примере pytest}
+
+  \begin{lstlisting}[caption=setup.py pytest-плагина pytest-cov]
+setup(
+    name="pytest-cov",
+    description="py.test plugin for coverage reporting with "
+    "support for both centralised and distributed testing, "
+    "including subprocesses and multiprocessing",
+    # other arguments here...
+    install_requires=[
+        "py>=1.4.22",
+        "pytest>=2.6.0",
+        "coverage>=3.7.1",
+        "cov-core>=1.14.0"
+    ],
+    entry_points={
+        "pytest11": ["pytest_cov = pytest_cov"]
+    },
+)
+  \end{lstlisting}
+\end{frame}
+
+\subsection{Extras}
+
+\begin{frame}[fragile]
+  \frametitle{Extras}
+
+  \begin{lstlisting}
+setup(
+    name="celery",
+    description="Distributed Task Queue",
+    # other arguments here...
+    extras_require={
+      "cassandra": ["pycassa"],
+      "mongodb": ["pymongo>=2.6.2"],
+      "msgpack": ["msgpack-python>=0.3.0"],
+      "redis": ["redis>=2.8.0"],
+      "zeromq": ["pyzmq>=13.1.0"],
+    }
+)
+  \end{lstlisting}
+  \pause
+  \vspace{0.5cm}
+  \begin{lstlisting}[numbers=none]
+$ pip install "celery[mongodb,msgpack,zeromq]"
+  \end{lstlisting}
+\end{frame}
+
+\section{Проблемы}
+
+\begin{frame}
+  \begin{center}
+    {\Huge Проблемы}
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Проблемы и ограничения}
+
+  \begin{itemize}
+  \item инструменты не всегда следят за конфликтами
+  \item нет понятия ``поставлен по зависимости''
+  \item неочевидные различия между
+    \begin{lstlisting}[numbers=none]
+pip install X Y
+    \end{lstlisting}
+    \begin{lstlisting}[numbers=none]
+pip install X
+pip install Y
+    \end{lstlisting}
+    \begin{lstlisting}[numbers=none]
+pip install Y
+pip install X
+    \end{lstlisting}
+  \item pip ведет себя не так, как apt-get, yum и др. пакетные менеджеры
+  \end{itemize}
+
+\end{frame}
+
+\section{Собираем все воедино}
+
+\begin{frame}
+  \frametitle{Собираем все воедино}
+
+  \begin{enumerate}
+  \item наше настоящее: {\tt virtualenv + pip + setuptools + wheel}
+  \item на систему пакетирования мы хотим возложить
+    \begin{itemize}
+    \item кроссплатформенные решения проблем сборки и запуска
+    \item типичные задачи по разбиению программы на компоненты
+    \end{itemize}
+  \item на систему пакетирования мы не хотим возлагать управление системой\\
+    (для этого есть {\tt ansible}, {\tt chef}, {\tt puppet}, {\tt salt})
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+    \begin{block}{Стас Рудаков}
+    \par \url{mailto:stas@garage22.net}
+    \par \url{https://raw.github.com/nott/talks/ppp.pdf}
+    \end{block}
+
+    \begin{block}
+      \par \url{https://packaging.python.org/}
+      \par \url{https://pythonhosted.org/setuptools/}
+    \end{block}
+    
+\end{frame}
+
+\end{document}
